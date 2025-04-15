@@ -607,10 +607,17 @@ async def verifyoff(bot, message):
     elif chat_type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
         grpid = message.chat.id
         title = message.chat.title
+        # Get the chat details to find the owner
+        chat = await bot.get_chat(grpid)
+        group_owner_id = chat.owner.id if chat.owner else None
+        # Check if the user is either the bot owner or the group owner
+        if message.from_user.id not in ADMINS and message.from_user.id != group_owner_id:
+            return await message.reply_text("ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴀʟʟᴏᴡᴇᴅ ᴛᴏ ᴜꜱᴇ ᴛʜɪꜱ ᴄᴏᴍᴍᴀɴᴅ.")
     else:
         return
     await save_group_settings(grpid, 'is_verify', False)
     return await message.reply_text("✓ ᴠᴇʀɪꜰʏ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴅɪꜱᴀʙʟᴇᴅ.")
+
     
 @Client.on_message(filters.command("verifyon") & filters.user(ADMINS))
 async def verifyon(bot, message):
@@ -620,6 +627,12 @@ async def verifyon(bot, message):
     elif chat_type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
         grpid = message.chat.id
         title = message.chat.title
+        # Get the chat details to find the owner
+        chat = await bot.get_chat(grpid)
+        group_owner_id = chat.owner.id if chat.owner else None
+        # Check if the user is either the bot owner or the group owner
+        if message.from_user.id not in ADMINS and message.from_user.id != group_owner_id:
+            return await message.reply_text("ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴀʟʟᴏᴡᴇᴅ ᴛᴏ ᴜꜱᴇ ᴛʜɪꜱ ᴄᴏᴍᴍᴀɴᴅ.")
     else:
         return
     await save_group_settings(grpid, 'is_verify', True)
