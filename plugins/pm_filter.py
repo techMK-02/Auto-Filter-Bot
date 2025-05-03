@@ -760,6 +760,25 @@ async def auto_filter(client, msg, spoll=False):
                 except:
                     pass
 
+async def ai_spell_check(wrong_name):
+    async def search_movie(wrong_name):
+        search_results = imdb.search_movie(wrong_name)
+        movie_list = [movie['title'] for movie in search_results]
+        return movie_list
+    movie_list = await search_movie(wrong_name)
+    if not movie_list:
+        return
+    for _ in range(5):
+        closest_match = process.extractOne(wrong_name, movie_list)
+        if not closest_match or closest_match[1] <= 80:
+            return 
+        movie = closest_match[0]
+        files, offset, total_results = await get_search_results(movie)
+        if files:
+            return movie
+        movie_list.remove(movie)
+    return
+
 async def advantage_spell_chok(message):
     mv_id = message.id
     search = message.text
@@ -770,6 +789,7 @@ async def advantage_spell_chok(message):
         "", message.text, flags=re.IGNORECASE)
     RQST = query.strip()
     query = query.strip() + " movie"
+    
     try:
         movies = await get_poster(search, bulk=True)
     except:
@@ -781,25 +801,35 @@ async def advantage_spell_chok(message):
         except:
             pass
         return
+
     if not movies:
-        google = search.replace(" ", "+")
-        button = [[
-            InlineKeyboardButton("🔍 ᴄʜᴇᴄᴋ sᴘᴇʟʟɪɴɢ ᴏɴ ɢᴏᴏɢʟᴇ 🔍", url=f"https://www.google.com/search?q={google}")
-        ]]
-        k = await message.reply_text(text=script.I_CUDNT.format(search), reply_markup=InlineKeyboardMarkup(button))
-        await asyncio.sleep(120)
-        await k.delete()
-        try:
-            await message.delete()
-        except:
-            pass
-        return
+        # Try AI spell correction
+        corrected_name = await ai_spell_check(search)
+        if corrected_name:
+            try:
+                movies = await get_poster(corrected_name, bulk=True)
+            except:
+                movies = None
+
+        if not movies:
+            google = search.replace(" ", "+")
+            button = [[
+                InlineKeyboardButton("🔍 ᴄʜᴇᴄᴋ sᴘᴇʟʟɪɴɢ ᴏɴ ɢᴏᴏɢʟᴇ 🔍", url=f"https://www.google.com/search?q={google}")
+            ]]
+            k = await message.reply_text(text=script.I_CUDNT.format(search), reply_markup=InlineKeyboardMarkup(button))
+            await asyncio.sleep(120)
+            await k.delete()
+            try:
+                await message.delete()
+            except:
+                pass
+            return
+
     user = message.from_user.id if message.from_user else 0
     buttons = [[
         InlineKeyboardButton(text=movie.get('title'), callback_data=f"spol#{movie.movieID}#{user}")
-    ]
-        for movie in movies
-    ]
+    ] for movie in movies]
+
     buttons.append(
         [InlineKeyboardButton(text="🚫 ᴄʟᴏsᴇ 🚫", callback_data='close_data')]
     )
